@@ -278,13 +278,13 @@ Found ${total} vulnerabilities (crit:${bySeverity.critical}, high:${bySeverity.h
 });
 
 export const web3AuditWorkflow = createWorkflow({
-  id: 'web3-audit-workflow',
+  id: 'web3AuditWorkflow',
+  description: 'Comprehensive Web3 smart contract security audit workflow',
   inputSchema,
   outputSchema,
 })
   .then(fetchCode)
   .then(analyzeStructure)
   .then(analyzeVulns)
-  .then(buildReport);
-
-web3AuditWorkflow.commit();
+  .then(buildReport)
+  .commit();

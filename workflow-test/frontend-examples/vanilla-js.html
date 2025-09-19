@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastra Workflow - Vanilla JS Example</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        input[type="text"], input[type="url"], input[type="password"] {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        input[type="text"]:focus, input[type="url"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .severity-critical { color: #dc3545; }
+        .severity-high { color: #fd7e14; }
+        .severity-medium { color: #ffc107; }
+        .severity-low { color: #007bff; }
+
+        .issue {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .issue-header {
+            display: flex;
+            justify-content: between;
+            align-items: start;
+            margin-bottom: 8px;
+        }
+
+        .issue-title {
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .severity-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-left: 8px;
+        }
+
+        .severity-badge.critical { background: #f8d7da; color: #721c24; }
+        .severity-badge.high { background: #fff3cd; color: #856404; }
+        .severity-badge.medium { background: #d1ecf1; color: #0c5460; }
+        .severity-badge.low { background: #d4edda; color: #155724; }
+
+        .code-snippet {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 8px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>Mastra Web3 Audit Workflow - Vanilla JS</h1>
+            <p>Direct API integration example without any frameworks</p>
+        </div>
+
+        <div class="card">
+            <form id="auditForm">
+                <div class="form-group">
+                    <label for="serverUrl">Mastra Server URL</label>
+                    <input type="url" id="serverUrl" value="http://localhost:4111" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="repoUrl">Repository URL *</label>
+                    <input type="url" id="repoUrl" value="https://github.com/error9098x/YieldNest" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="token">GitHub Token (Optional)</label>
+                    <input type="password" id="token" placeholder="ghp_...">
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="includeSecurityAnalysis" checked>
+                        <label for="includeSecurityAnalysis">Include Security Analysis</label>
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn">Run Security Audit</button>
+            </form>
+        </div>
+
+        <div id="loading" class="card loading hidden">
+            <p>🔄 Running audit workflow...</p>
+            <p>This may take a few moments.</p>
+        </div>
+
+        <div id="error" class="card error hidden"></div>
+
+        <div id="results" class="card hidden">
+            <h2>Audit Results</h2>
+            
+            <div id="summary" class="card">
+                <h3>Summary</h3>
+                <p id="summaryText"></p>
+                <div id="scanId" style="font-size: 12px; color: #666; margin-top: 8px;"></div>
+            </div>
+
+            <div id="stats" class="stats-grid"></div>
+
+            <div id="severityBreakdown" class="card">
+                <h3>Vulnerability Breakdown</h3>
+                <div id="severityStats"></div>
+            </div>
+
+            <div id="issues" class="card">
+                <h3>Security Issues</h3>
+                <div id="issuesList"></div>
+            </div>
+
+            <div id="recommendations" class="card">
+                <h3>General Recommendations</h3>
+                <ul id="recommendationsList"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Workflow API Integration
+        class MastraWorkflowClient {
+            constructor(serverUrl) {
+                this.serverUrl = serverUrl.replace(/\/$/, ''); // Remove trailing slash
+            }
+
+            async runWorkflow(inputData) {
+                try {
+                    // Step 1: Create workflow run
+                    const createResponse = await fetch(`${this.serverUrl}/api/workflows/web3AuditWorkflow/create-run`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+
+                    if (!createResponse.ok) {
+                        throw new Error(`Failed to create run: ${createResponse.status} ${createResponse.statusText}`);
+                    }
+
+                    const { runId } = await createResponse.json();
+
+                    // Step 2: Start workflow and get results
+                    const startResponse = await fetch(`${this.serverUrl}/api/workflows/web3AuditWorkflow/start-async`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            runId: runId,
+                            inputData: inputData
+                        })
+                    });
+
+                    if (!startResponse.ok) {
+                        throw new Error(`Failed to start workflow: ${startResponse.status} ${startResponse.statusText}`);
+                    }
+
+                    const result = await startResponse.json();
+
+                    if (result.status !== 'success') {
+                        throw new Error(`Workflow failed with status: ${result.status}`);
+                    }
+
+                    return result.result;
+                } catch (error) {
+                    console.error('Workflow execution failed:', error);
+                    throw error;
+                }
+            }
+        }
+
+        // UI Management
+        class AuditUI {
+            constructor() {
+                this.form = document.getElementById('auditForm');
+                this.loadingDiv = document.getElementById('loading');
+                this.errorDiv = document.getElementById('error');
+                this.resultsDiv = document.getElementById('results');
+                this.submitBtn = document.getElementById('submitBtn');
+                
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                this.form.addEventListener('submit', this.handleSubmit.bind(this));
+            }
+
+            async handleSubmit(e) {
+                e.preventDefault();
+                
+                const serverUrl = document.getElementById('serverUrl').value.trim();
+                const repoUrl = document.getElementById('repoUrl').value.trim();
+                const token = document.getElementById('token').value.trim();
+                const includeSecurityAnalysis = document.getElementById('includeSecurityAnalysis').checked;
+
+                if (!repoUrl) {
+                    this.showError('Repository URL is required');
+                    return;
+                }
+
+                const inputData = {
+                    repoUrl,
+                    includeSecurityAnalysis
+                };
+
+                if (token) {
+                    inputData.token = token;
+                }
+
+                this.showLoading();
+
+                try {
+                    const client = new MastraWorkflowClient(serverUrl);
+                    const result = await client.runWorkflow(inputData);
+                    this.showResults(result);
+                } catch (error) {
+                    this.showError(error.message);
+                }
+            }
+
+            showLoading() {
+                this.loadingDiv.classList.remove('hidden');
+                this.errorDiv.classList.add('hidden');
+                this.resultsDiv.classList.add('hidden');
+                this.submitBtn.disabled = true;
+                this.submitBtn.textContent = 'Running Audit...';
+            }
+
+            showError(message) {
+                this.errorDiv.textContent = message;
+                this.errorDiv.classList.remove('hidden');
+                this.loadingDiv.classList.add('hidden');
+                this.resultsDiv.classList.add('hidden');
+                this.submitBtn.disabled = false;
+                this.submitBtn.textContent = 'Run Security Audit';
+            }
+
+            showResults(result) {
+                this.loadingDiv.classList.add('hidden');
+                this.errorDiv.classList.add('hidden');
+                this.resultsDiv.classList.remove('hidden');
+                this.submitBtn.disabled = false;
+                this.submitBtn.textContent = 'Run Security Audit';
+
+                // Summary
+                document.getElementById('summaryText').textContent = result.summary;
+                document.getElementById('scanId').textContent = `Scan ID: ${result.scanId}`;
+
+                // Statistics
+                this.renderStats(result.counts);
+
+                // Severity breakdown
+                this.renderSeverityBreakdown(result.counts.bySeverity);
+
+                // Issues
+                this.renderIssues(result.issues);
+
+                // Recommendations
+                this.renderRecommendations(result.recommendations);
+            }
+
+            renderStats(counts) {
+                const statsDiv = document.getElementById('stats');
+                statsDiv.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-number">${counts.filesScanned}</div>
+                        <div class="stat-label">Files Scanned</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${counts.solidityFiles}</div>
+                        <div class="stat-label">Solidity Files</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${counts.vulnerabilities}</div>
+                        <div class="stat-label">Vulnerabilities</div>
+                    </div>
+                `;
+            }
+
+            renderSeverityBreakdown(bySeverity) {
+                const severityDiv = document.getElementById('severityStats');
+                severityDiv.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span class="severity-critical">Critical:</span>
+                            <strong>${bySeverity.critical}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span class="severity-high">High:</span>
+                            <strong>${bySeverity.high}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span class="severity-medium">Medium:</span>
+                            <strong>${bySeverity.medium}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span class="severity-low">Low:</span>
+                            <strong>${bySeverity.low}</strong>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderIssues(issues) {
+                const issuesDiv = document.getElementById('issuesList');
+                
+                if (issues.length === 0) {
+                    issuesDiv.innerHTML = '<p>No security issues found! 🎉</p>';
+                    return;
+                }
+
+                issuesDiv.innerHTML = issues.map(issue => `
+                    <div class="issue">
+                        <div class="issue-header">
+                            <div class="issue-title">${this.escapeHtml(issue.title)}</div>
+                            <span class="severity-badge ${issue.severity}">${issue.severity}</span>
+                        </div>
+                        <p style="margin-bottom: 8px; color: #666;">${this.escapeHtml(issue.description)}</p>
+                        <div style="font-size: 12px; color: #888; margin-bottom: 8px;">
+                            File: ${issue.file}${issue.line ? ` (Line ${issue.line})` : ''}
+                        </div>
+                        ${issue.snippet ? `
+                            <div class="code-snippet">${this.escapeHtml(issue.snippet)}</div>
+                        ` : ''}
+                        <div style="margin-bottom: 8px;">
+                            <strong style="color: #dc3545;">Problem:</strong> ${this.escapeHtml(issue.problem)}
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <strong style="color: #28a745;">Recommendation:</strong> ${this.escapeHtml(issue.recommendation)}
+                        </div>
+                        <div style="font-size: 12px; color: #666;">
+                            Confidence: ${Math.round(issue.confidence * 100)}%
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            renderRecommendations(recommendations) {
+                const recDiv = document.getElementById('recommendationsList');
+                recDiv.innerHTML = recommendations.map(rec => 
+                    `<li>${this.escapeHtml(rec)}</li>`
+                ).join('');
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            new AuditUI();
+        });
+    </script>
+</body>
+</html>

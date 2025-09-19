@@ -1,0 +1,22 @@
+{
+  "name": "mastra-workflow-integration-guide",
+  "version": "1.0.0",
+  "description": "Complete guide for integrating Mastra workflows with frontend applications",
+  "type": "module",
+  "scripts": {
+    "test": "npx tsx workflow-test.ts",
+    "test:html": "open workflow-tester.html"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "mastra",
+    "workflow",
+    "api",
+    "integration",
+    "web3",
+    "audit"
+  ]
+}

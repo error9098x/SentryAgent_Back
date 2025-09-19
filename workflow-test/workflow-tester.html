@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastra API Quick Tester</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #1e7e34;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+        .success {
+            border-color: #28a745;
+            background-color: #f8fff8;
+        }
+        .error {
+            border-color: #dc3545;
+            background-color: #fff8f8;
+        }
+        .json-output {
+            background-color: #f1f3f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow: auto;
+            max-height: 300px;
+            font-size: 11px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .loading {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .timestamp {
+            color: #666;
+            font-size: 10px;
+            float: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Mastra Workflow Tester</h1>
+        <p>Test your Mastra Web3 Audit workflow directly from your browser - no setup required!</p>
+        
+        <div class="input-group">
+            <label for="serverUrl">Server URL:</label>
+            <input type="text" id="serverUrl" 
+                   value="http://localhost:4111/"
+                   placeholder="http://localhost:4111/">
+        </div>
+        
+        <div class="button-grid">
+            <button class="btn-success" onclick="runAllTests()">▶️ Run All Tests</button>
+            <button class="btn-danger" onclick="clearResults()">🗑️ Clear Results</button>
+            <button class="btn-primary" onclick="testServerHealth()">🌐 Server Health</button>
+            <button class="btn-primary" onclick="testGetWorkflows()">📋 Get Workflows</button>
+            <button class="btn-primary" onclick="testGetAgents()">🤖 Get Agents</button>
+            <button class="btn-primary" onclick="testGetTools()">🔧 Get Tools</button>
+            <button class="btn-primary" onclick="testOpenApiSpec()">📖 OpenAPI Spec</button>
+            <button class="btn-primary" onclick="testApiRoutes()">🔍 API Routes</button>
+        </div>
+        
+        <div id="results"></div>
+        
+        <div style="margin-top: 40px; padding: 20px; background-color: #e9ecef; border-radius: 8px;">
+            <h3>🔍 Quick Diagnostics Guide</h3>
+            <ul style="font-size: 12px; line-height: 1.6;">
+                <li><strong>404 Errors:</strong> Workflow/agent name doesn't match server registration</li>
+                <li><strong>CORS Errors:</strong> Server not configured for cross-origin requests</li>
+                <li><strong>Empty Arrays/Objects:</strong> No workflows/agents/tools registered on server</li>
+                <li><strong>Network Errors:</strong> Server not reachable or wrong URL</li>
+                <li><strong>500 Errors:</strong> Server-side configuration or deployment issues</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let isLoading = false;
+        
+        function getServerUrl() {
+            return document.getElementById('serverUrl').value.trim();
+        }
+        
+        function addResult(testName, success, data, error = null) {
+            const resultsDiv = document.getElementById('results');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result-box ${success ? 'success' : 'error'}`;
+            
+            resultDiv.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 style="margin: 0; color: ${success ? '#28a745' : '#dc3545'};">
+                        ${success ? '✅' : '❌'} ${testName}
+                    </h3>
+                    <span class="timestamp">${timestamp}</span>
+                </div>
+                ${success ? 
+                    `<div><strong>Response Data:</strong><div class="json-output">${JSON.stringify(data, null, 2)}</div></div>` :
+                    `<div><strong style="color: #dc3545;">Error:</strong><div style="background-color: #ffe6e6; padding: 10px; border-radius: 4px; margin-top: 5px; color: #dc3545; font-weight: bold;">${error}</div></div>`
+                }
+            `;
+            
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        function setLoading(loading) {
+            isLoading = loading;
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(btn => {
+                btn.disabled = loading;
+                if (loading) {
+                    btn.style.opacity = '0.6';
+                    btn.style.cursor = 'not-allowed';
+                } else {
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                }
+            });
+        }
+        
+        async function testServerHealth() {
+            setLoading(true);
+            try {
+                const response = await fetch(`${getServerUrl()}/api`);
+                const data = {
+                    status: response.status,
+                    statusText: response.statusText,
+                    ok: response.ok,
+                    headers: Object.fromEntries(response.headers.entries())
+                };
+                addResult('Server Health Check', response.ok, data);
+            } catch (error) {
+                addResult('Server Health Check', false, null, error.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        async function testGetWorkflows() {
+            setLoading(true);
+            try {
+                const response = await fetch(`${getServerUrl()}/api/workflows`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                addResult('Get Workflows', true, data);
+            } catch (error) {
+                addResult('Get Workflows', false, null, error.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        async function testGetAgents() {
+            setLoading(true);
+            try {
+                const response = await fetch(`${getServerUrl()}/api/agents`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                addResult('Get Agents', true, data);
+            } catch (error) {
+                addResult('Get Agents', false, null, error.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        async function testGetTools() {
+            setLoading(true);
+            try {
+                const response = await fetch(`${getServerUrl()}/api/tools`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                addResult('Get Tools', true, data);
+            } catch (error) {
+                addResult('Get Tools', false, null, error.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        async function testOpenApiSpec() {
+            setLoading(true);
+            try {
+                const response = await fetch(`${getServerUrl()}/openapi.json`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                addResult('OpenAPI Specification', true, data);
+            } catch (error) {
+                addResult('OpenAPI Specification', false, null, error.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        async function testApiRoutes() {
+            setLoading(true);
+            try {
+                const endpoints = ['/api/workflows', '/api/agents', '/api/tools', '/api/memory'];
+                const results = {};
+                
+                for (const endpoint of endpoints) {
+                    try {
+                        const response = await fetch(`${getServerUrl()}${endpoint}`);
+                        results[endpoint] = {
+                            status: response.status,
+                            ok: response.ok,
+                            statusText: response.statusText
+                        };
+                    } catch (error) {
+                        results[endpoint] = {
+                            error: error.message
+                        };
+                    }
+                }
+                addResult('API Routes Discovery', true, results);
+            } catch (error) {
+                addResult('API Routes Discovery', false, null, error.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        async function runAllTests() {
+            clearResults();
+            setLoading(true);
+            
+            const tests = [
+                testServerHealth,
+                testGetWorkflows,
+                testGetAgents,
+                testGetTools,
+                testOpenApiSpec,
+                testApiRoutes
+            ];
+            
+            for (const test of tests) {
+                await test();
+                // Small delay between tests
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            setLoading(false);
+        }
+        
+        // Auto-focus on server URL input
+        document.getElementById('serverUrl').focus();
+    </script>
+</body>
+</html>

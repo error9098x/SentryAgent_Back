@@ -1,0 +1,28 @@
+{
+  "name": "sentry-agent-audit",
+  "version": "1.0.0",
+  "description": "Web3 security audit tool using Mastra workflows",
+  "main": "run-audit.js",
+  "scripts": {
+    "audit": "node run-audit.js",
+    "audit:yieldnest": "node run-audit.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "web3",
+    "security",
+    "audit",
+    "solidity",
+    "mastra",
+    "defi"
+  ],
+  "author": "SentryAgent",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "@mastra/client-js": "^0.16.3"
+  },
+  "devDependencies": {}
+}
